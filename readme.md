@@ -27,5 +27,5 @@ browserifies JS on the fly. Like https://wzrd.in/ but handles multiple modules m
     var modules = loadJs(js);
     =>  {a: [Object], b: [Object], c: [Object]}
 
-* `?require=true' - define `window.require` so you can `require('a')`.
-* `?debug=true' - include source maps.
+* `?require=true` - define `window.require` so you can `require('a')`.
+* `?debug=true` - include source maps.
