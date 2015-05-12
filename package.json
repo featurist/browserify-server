@@ -1,0 +1,37 @@
+{
+  "name": "browserify-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "1.12.4",
+    "debug": "2.2.0",
+    "browserify": "10.1.3",
+    "express": "4.12.3",
+    "fs-promise": "0.3.1",
+    "httpism": "0.2.4",
+    "mkdirp": "0.5.0",
+    "qs": "2.4.2",
+    "rimraf": "2.3.3",
+    "shell-quote": "1.4.3",
+    "tmp": "0.0.26"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/featurist/browserify-server.git"
+  },
+  "keywords": [
+    "browserify"
+  ],
+  "author": "Tim Macfarlane <timmacfarlane@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/featurist/browserify-server/issues"
+  },
+  "homepage": "https://github.com/featurist/browserify-server"
+}
