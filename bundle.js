@@ -3,11 +3,11 @@ var spawn = require('./spawn');
 var debug = require('debug')('browserify-server:bundle');
 
 function index(modules) {
-  return 'module.exports = {' +
+  return 'module.exports = {modules:{' +
     modules.moduleVersions.map(function (moduleVersion) {
       return JSON.stringify(moduleVersion.name) + ': require("' + moduleVersion.name + '")';
     }).join(',') +
-    '};'
+    '},versions:' + JSON.stringify(modules.dependencies()) + '};';
 }
 
 function writeIndex(modules, dir) {
@@ -15,7 +15,7 @@ function writeIndex(modules, dir) {
 }
 
 function argsFilename(modules, options) {
-  var args = ['index.js'];
+  var args = [];
 
   var out = 'bundle';
 
@@ -30,6 +30,9 @@ function argsFilename(modules, options) {
         args.push('-r', moduleVersion.name);
       });
       out += '-require';
+    } else {
+      args.push('index.js');
+      args.push('-s', 'bundle');
     }
   }
 
@@ -47,10 +50,10 @@ function exists(filename) {
 }
 
 module.exports = function (modules, dir, options) {
-  return writeIndex(modules, dir).then(function () {
-    var argfn = argsFilename(modules, options);
-    var filename = dir + '/' + argfn.filename;
+  var argfn = argsFilename(modules, options);
+  var filename = dir + '/' + argfn.filename;
 
+  function buildBundle() {
     return exists(filename).then(function (bundleExists) {
       if (!bundleExists) {
         debug('not exists:', filename);
@@ -62,5 +65,11 @@ module.exports = function (modules, dir, options) {
         return filename;
       }
     });
-  });
+  }
+
+  if (options && options.debug) {
+    return buildBundle();
+  } else {
+    return writeIndex(modules, dir).then(buildBundle);
+  }
 };

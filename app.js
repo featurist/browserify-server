@@ -5,9 +5,11 @@ var bundle = require('./bundle');
 var debug = require('debug');
 var createModules = require('./modules');
 var qs = require('qs');
+var cors = require('cors');
 
 var app = express();
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cors());
 
 app.get('/modules/:modules', function (req, res) {
   try {

@@ -2,18 +2,29 @@ var spawn = require('child_process').spawn;
 var debug = require('debug')('browserify-server:spawn');
 var shellQuote = require('shell-quote');
 
-module.exports = function () {
-  var args = Array.prototype.slice.apply(arguments);
+module.exports = function (cmd, args, options) {
+  var stream;
+
+  if (options && options.stream) {
+    stream = options.stream;
+    delete options.stream;
+  }
 
   var error = [];
 
   return new Promise(function (fulfil, reject) {
-    var shellCommand = shellQuote.quote([args[0]].concat(args[1]));
+    var shellCommand = shellQuote.quote([cmd].concat(args));
     debug(shellCommand);
-    var ps = spawn.apply(undefined, args);
+    var ps = spawn(cmd, args, options);
     ps.on('error', reject);
-    ps.stdout.setEncoding('utf-8');
-    ps.stdout.on('data', debug);
+
+    if (stream) {
+      ps.stdout.pipe(stream, {end: false});
+    } else {
+      ps.stdout.setEncoding('utf-8');
+      ps.stdout.on('data', debug);
+    }
+
     ps.stderr.setEncoding('utf-8');
     ps.stderr.on('data', function (data) {
       error.push(data);
