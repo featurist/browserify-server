@@ -27,7 +27,11 @@ Modules.prototype.hasExactVersions = function () {
   });
 };
 
-Modules.prototype.resolveVersions = function (modules) {
+function npmUrl(moduleVersion) {
+  return 'https://registry.npmjs.org/' + moduleVersion.name + '/' + moduleVersion.version;
+}
+
+Modules.prototype.resolveVersions = function () {
   function renderModuleVersion(name, version) {
     return name + '@' + version;
   }
@@ -36,13 +40,19 @@ Modules.prototype.resolveVersions = function (modules) {
     if (hasExactVersion(moduleVersion.version)) {
       return renderModuleVersion(moduleVersion.name, moduleVersion.version);
     } else {
-      return httpism.get('https://registry.npmjs.org/' + moduleVersion.name + '/' + moduleVersion.version).then(function (response) {
+      return httpism.get(npmUrl(moduleVersion)).then(function (response) {
         return renderModuleVersion(moduleVersion.name, response.body.version);
       });
     }
   })).then(function (modules) {
     return new Modules(modules);
   });
+};
+
+Modules.prototype.verifyVersions = function () {
+  return Promise.all(this.moduleVersions.map(function (moduleVersion) {
+    return httpism.get(npmUrl(moduleVersion));
+  }));
 };
 
 Modules.prototype.dependencies = function () {

@@ -1,0 +1,25 @@
+{
+  "name": "browserify-server-test-peer-dep",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/featurist/browserify-server.git"
+  },
+  "peerDependencies": {
+    "browserify-server-test": "^1.0.0"
+  },
+  "keywords": [
+    "browserify"
+  ],
+  "author": "Tim Macfarlane <timmacfarlane@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/featurist/browserify-server/issues"
+  },
+  "homepage": "https://github.com/featurist/browserify-server"
+}

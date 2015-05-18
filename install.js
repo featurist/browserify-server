@@ -1,15 +1,15 @@
-var tmp = require('tmp');
-var spawn = require('child_process').spawn;
 var fs = require('fs-promise');
 var promisify = require('./promisify');
 var spawn = require('./spawn');
-var crypto = require('crypto');
-var httpism = require('httpism');
 var debug = require('debug')('browserify-server:install');
 var rimraf = require('rimraf');
+var mkdirp = require('mkdirp');
+var cache = require('./cache');
 
-function packageDirectory(modules) {
-  var dirName = 'packages/' + modules.hash();
+var packagesCache = cache();
+
+function packageDirectory(packagesDir, modules) {
+  var dirName = packagesDir + '/' + modules.hash();
 
   return fs.exists(dirName).then(function (exists) {
     if (!exists) {
@@ -28,14 +28,8 @@ function packageDirectory(modules) {
   });
 }
 
-function tempDirectory() {
-  return promisify(function (cb) {
-    return tmp.dir({dir: 'packages'}, cb);
-  });
-}
-
 function npmInstall(dir) {
-  return spawn('npm', ['install', '--production'], {cwd: dir});
+  return spawn('npm', ['install', '--production', '--ignore-scripts'], {cwd: dir});
 }
 
 function writePackage(modules, dir) {
@@ -48,36 +42,38 @@ function writePackage(modules, dir) {
   return fs.writeFile(packageFilename, JSON.stringify(package, null, 2));
 }
 
-function mkdirPackages() {
+function mkdirPackages(packagesDir) {
   return promisify(function (cb) {
-    fs.exists('packages', function (exists) {
-      if(!exists) {
-        fs.mkdir('packages', cb);
-      } else {
-        cb();
-      }
-    });
+    mkdirp(packagesDir, cb);
   });
 }
 
-module.exports = function (modules) {
-  return mkdirPackages().then(function () {
-    return packageDirectory(modules).then(function (dir) {
-      if (dir.exists) {
-        return dir.path;
-      } else {
-        return writePackage(modules, dir.path).then(function () {
-          return npmInstall(dir.path).then(function () {
-            return dir.path;
+module.exports = function (packagesDir, modules) {
+  return packagesCache.cacheBy(modules.hash(), function () {
+    return mkdirPackages(packagesDir).then(function () {
+      return packageDirectory(packagesDir, modules).then(function (dir) {
+        if (dir.exists) {
+          debug('directory ' + dir.path + ' exists for modules: ' + modules.modules.join(','));
+          return dir.path;
+        } else {
+          return writePackage(modules, dir.path).then(function () {
+            debug('npm install in directory ' + dir.path + ' for modules: ' + modules.modules.join(','));
+            return npmInstall(dir.path).then(function () {
+              return dir.path;
+            });
+          }).then(undefined, function (error) {
+            return promisify(function (cb) {
+              rimraf(dir.path, cb);
+            }).then(function () {
+              throw error;
+            });
           });
-        }).then(undefined, function (error) {
-          return promisify(function (cb) {
-            rimraf(dir.path, cb);
-          }).then(function () {
-            throw error;
-          });
-        });
-      }
+        }
+      });
     });
   });
+};
+
+module.exports.clearCache = function () {
+  packagesCache.clear();
 };

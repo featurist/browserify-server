@@ -1,6 +1,17 @@
 var fs = require('fs-promise');
 var spawn = require('./spawn');
 var debug = require('debug')('browserify-server:bundle');
+var cache = require('./cache');
+var rimrafCb = require('rimraf');
+var promisify = require('./promisify');
+
+function rimraf(dir) {
+  return promisify(function (cb) {
+    rimrafCb(dir, cb);
+  });
+}
+
+var bundleCache = cache();
 
 function index(modules) {
   return 'module.exports = {modules:{' +
@@ -17,26 +28,22 @@ function writeIndex(modules, dir) {
 function argsFilename(modules, options) {
   var args = [];
 
-  var out = 'bundle';
-
   if (options) {
     if (options.debug) {
       args.push('-d');
-      out += '-debug';
     }
 
     if (options.require) {
       modules.moduleVersions.forEach(function (moduleVersion) {
         args.push('-r', moduleVersion.name);
       });
-      out += '-require';
     } else {
       args.push('index.js');
       args.push('-s', 'bundle');
     }
   }
 
-  var filename = out + '.js';
+  var filename = bundleFilename(options);
   args.push('-o', filename);
 
   return {
@@ -49,7 +56,14 @@ function exists(filename) {
   return fs.exists(filename);
 }
 
-module.exports = function (modules, dir, options) {
+function bundleFilename(options) {
+  return 'bundle'
+    + (options.debug? '-debug': '')
+    + (options.require? '-require': '')
+    + '.js'
+}
+
+function createBundle(modules, dir, options) {
   var argfn = argsFilename(modules, options);
   var filename = dir + '/' + argfn.filename;
 
@@ -72,4 +86,29 @@ module.exports = function (modules, dir, options) {
   } else {
     return writeIndex(modules, dir).then(buildBundle);
   }
+};
+
+function removeNodeModules(dir) {
+  var nodeModulesDir = dir + '/node_modules';
+  debug('not removing ', nodeModulesDir);
+  // return rimraf(nodeModulesDir);
+}
+
+module.exports = function (modules, dir, options) {
+  return bundleCache.cacheBy(modules.hash(), function () {
+    return Promise.all([
+      createBundle(modules, dir, {debug: false, require: false}),
+      createBundle(modules, dir, {debug: false, require: true}),
+      createBundle(modules, dir, {debug: true, require: false}),
+      createBundle(modules, dir, {debug: true, require: true})
+    ]).then(function () {
+      return removeNodeModules(dir);
+    });
+  }).then(function () {
+    return dir + '/' + bundleFilename(options);
+  });
+};
+
+module.exports.clearCache = function () {
+  bundleCache.clear();
 };
