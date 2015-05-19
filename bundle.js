@@ -4,6 +4,7 @@ var debug = require('debug')('browserify-server:bundle');
 var cache = require('./cache');
 var rimrafCb = require('rimraf');
 var promisify = require('./promisify');
+var pathUtils = require('path');
 
 function rimraf(dir) {
   return promisify(function (cb) {
@@ -71,7 +72,8 @@ function createBundle(modules, dir, options) {
     return exists(filename).then(function (bundleExists) {
       if (!bundleExists) {
         debug('not exists:', filename);
-        return spawn('browserify', argfn.args, {cwd: dir}).then(function () {
+        var browserifyPath = pathUtils.relative(dir, process.cwd() + '/node_modules/.bin/browserify')
+        return spawn(browserifyPath, argfn.args, {cwd: dir}).then(function () {
           return filename;
         });
       } else {
