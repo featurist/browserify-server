@@ -14,7 +14,7 @@ Write a web page with this in it:
 </script>
 ```
 
-How is this different to https://wzrd.in/?
+How is this different to https://wzrd.in/ and [browserify-cdn](https://github.com/jfhbrook/browserify-cdn)?
 
 * multiple modules (with inter-dependencies intact)
 * supports `peerDependencies`
