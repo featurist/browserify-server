@@ -14,16 +14,12 @@ function rimraf(dir) {
 
 var bundleCache = cache();
 
-function index(modules) {
-  return 'module.exports = {modules:{' +
-    modules.requires().map(function (moduleName) {
-      return JSON.stringify(moduleName) + ': require(' + JSON.stringify(moduleName) + ')';
-    }).join(',') +
-    '},versions:' + JSON.stringify(modules.dependencies()) + '};';
+function moduleVersions(modules) {
+  return 'module.exports = ' + JSON.stringify(modules.dependencies()) + ';';
 }
 
-function writeIndex(modules, dir) {
-  return fs.writeFile(dir + '/index.js', index(modules));
+function writeModuleVersions(modules, dir) {
+  return fs.writeFile(dir + '/module-versions.js', moduleVersions(modules));
 }
 
 function argsFilename(modules, options) {
@@ -34,14 +30,10 @@ function argsFilename(modules, options) {
       args.push('-d');
     }
 
-    if (options.require) {
-      modules.requires().forEach(function (moduleName) {
-        args.push('-r', moduleName);
-      });
-    } else {
-      args.push('index.js');
-      args.push('-s', 'bundle');
-    }
+    args.push('-r', './module-versions.js:module-versions');
+    modules.requires().forEach(function (moduleName) {
+      args.push('-r', moduleName);
+    });
   }
 
   var filename = bundleFilename(options);
@@ -60,7 +52,6 @@ function exists(filename) {
 function bundleFilename(options) {
   return 'bundle'
     + (options.debug? '-debug': '')
-    + (options.require? '-require': '')
     + '.js'
 }
 
@@ -68,7 +59,7 @@ function createBundle(modules, dir, options) {
   var argfn = argsFilename(modules, options);
   var filename = dir + '/' + argfn.filename;
 
-  function buildBundle() {
+  return writeModuleVersions(modules, dir).then(function () {
     return exists(filename).then(function (bundleExists) {
       if (!bundleExists) {
         debug('not exists:', filename);
@@ -81,13 +72,7 @@ function createBundle(modules, dir, options) {
         return filename;
       }
     });
-  }
-
-  if (options && options.debug) {
-    return buildBundle();
-  } else {
-    return writeIndex(modules, dir).then(buildBundle);
-  }
+  });
 };
 
 function removeNodeModules(dir) {
@@ -98,10 +83,8 @@ function removeNodeModules(dir) {
 module.exports = function (modules, dir, options) {
   return bundleCache.cacheBy(modules.hash(), function () {
     return Promise.all([
-      createBundle(modules, dir, {debug: false, require: false}),
-      createBundle(modules, dir, {debug: false, require: true}),
-      createBundle(modules, dir, {debug: true, require: false}),
-      createBundle(modules, dir, {debug: true, require: true})
+      createBundle(modules, dir, {debug: false}),
+      createBundle(modules, dir, {debug: true})
     ]).then(function () {
       return removeNodeModules(dir);
     });

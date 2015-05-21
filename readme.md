@@ -18,6 +18,7 @@ How is this different to https://wzrd.in/?
 * supports `peerDependencies`
 * supports using `require()` in your `<script>`
 * supports deep paths, e.g. `require('module/lib/thing')`
+* includes the versions of each module, as they were resolved
 
 Essentially just like doing `npm install` but from your browser.
 
@@ -39,15 +40,19 @@ Likewise, if you specify a tag such as `beta` or `latest` you'll be redirected t
     GET /modules/a@beta,b,c
     => 302, Location: /modules/a@1.1.0-beta,b@1.0.0,c@1.0.0
 
+**NOTE** resolving versions can take a little extra time, a few hundred milliseconds, depending on [registry.npmjs.org](https://registry.npmjs.org). It's advisable to specify exact versions to get almost instant responses (after initial build).
+
 ## specific versions
 
-### require
+**NOTE** it can take a few seconds to build the bundle for the first time, following that responses are almost instantaneous.
 
 * sets a `require` global function (or not, see below)
+* includes a module called `module-versions` containing the versions of each module
 
     <script src="http://localhost:4000/modules/a@1.0.0,b@1.0.0,c@1.0.0"></script>
     <script>
       var a = require('a');
+      var versionOfA = require('module-versions').a; // "1.0.0"
       ...
     </script>
 
@@ -62,34 +67,6 @@ If you want to get at the `require` function but without setting it globally, do
     });
 
 `loadRequire` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
-
-### with versions
-
-    ?versions=true
-
-* sets a `bundle` global variable (or not, see below)
-* exposes the modules and their versions as resolved at the time
-
-    <script src="http://localhost:4000/modules/a,b,c?versions=true"></script>
-    <script>
-      var a = bundle.modules.a;
-      var aVersion = bundle.versions.a; // "1.0.0"
-      ...
-    </script>
-
-If you want to get the bundle without setting a global `bundle` variable, do this:
-
-    function loadModules(js) {
-      var module = {exports: {}};
-      new Function('module', 'exports', js)(module, module.exports);
-      return module.exports;
-    }
-
-    $.get('http://localhost:4000/modules/a,b,c?versions=true').then(function (js) {
-      var bundle = loadModules(js);
-    });
-
-`loadModules` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
 
 ### debug
 

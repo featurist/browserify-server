@@ -45,10 +45,9 @@ app.use('/modules', function (req, res) {
   new Promise(function (fulfil) {
     var moduleNames = req.path.substring(1).split(',');
     var debug = req.query.debug === 'true';
-    var require = req.query.require === 'true';
 
     if (moduleNames.length > 0) {
-      fulfil(respond(moduleNames, {debug: debug, require: require}, req, res));
+      fulfil(respond(moduleNames, {debug: debug}, req, res));
     } else {
       res.status(400).send({message: 'expected modules to be an array'});
     }

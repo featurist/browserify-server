@@ -103,17 +103,18 @@ describe('browserify server', function () {
     describe('returning modules with versions', function () {
       it('browserifies modules with peer dependencies', function () {
         return api.get('/modules/browserify-server-test,browserify-server-test-peer-dep').then(function (response) {
-          var modules = client.loadModules(response.body);
+          var req = client.loadRequire(response.body);
 
-          var browserifyServerTest = modules.modules['browserify-server-test'];
-          var browserifyServerTestPeerDep = modules.modules['browserify-server-test-peer-dep'];
+          var browserifyServerTest = req('browserify-server-test');
+          var browserifyServerTestPeerDep = req('browserify-server-test-peer-dep');
 
           expect(browserifyServerTest()).to.equal('browserify-server-test');
           expect(browserifyServerTestPeerDep()).to.equal('browserify-server-test-peer-dep');
           expect(browserifyServerTestPeerDep.peerDependency).to.equal(browserifyServerTest);
 
-          expect(modules.versions['browserify-server-test']).to.equal(testVersion);
-          expect(modules.versions['browserify-server-test-peer-dep']).to.equal(testPeerDepVersion);
+          var versions = req('module-versions');
+          expect(versions['browserify-server-test']).to.equal(testVersion);
+          expect(versions['browserify-server-test-peer-dep']).to.equal(testPeerDepVersion);
         });
       });
 
@@ -168,21 +169,21 @@ describe('browserify server', function () {
 
       it('returns both responses correctly, even with different parameters', function () {
         return Promise.all([
-          api.get('/modules/browserify-server-test@' + testVersion),
-          api.get('/modules/browserify-server-test@' + testVersion + '?require=true')
+          api.get('/modules/browserify-server-test@' + testVersion + '?debug=true'),
+          api.get('/modules/browserify-server-test@' + testVersion)
         ]).then(function (responses) {
-          var modules = client.loadModules(responses[0].body);
-          var req = client.loadRequire(responses[1].body);
+          var req1 = client.loadRequire(responses[0].body);
+          var req2 = client.loadRequire(responses[1].body);
 
-          expect(req('browserify-server-test')()).to.equal('browserify-server-test');
-          expect(modules.modules['browserify-server-test']()).to.equal('browserify-server-test');
+          expect(req1('browserify-server-test')()).to.equal('browserify-server-test');
+          expect(req2('browserify-server-test')()).to.equal('browserify-server-test');
         });
       });
     });
 
     describe('require', function () {
       it('browserifies modules with peer dependencies', function () {
-        return api.get('/modules/browserify-server-test,browserify-server-test-peer-dep?require=true').then(function (response) {
+        return api.get('/modules/browserify-server-test,browserify-server-test-peer-dep').then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTest = req('browserify-server-test');
@@ -195,7 +196,7 @@ describe('browserify server', function () {
       });
 
       it('can require deep paths', function () {
-        return api.get('/modules/browserify-server-test/lib/thing?require=true').then(function (response) {
+        return api.get('/modules/browserify-server-test/lib/thing').then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -205,7 +206,7 @@ describe('browserify server', function () {
       });
 
       it('can require deep paths with versions', function () {
-        return api.get('/modules/browserify-server-test/lib/thing@' + testVersion + '?require=true').then(function (response) {
+        return api.get('/modules/browserify-server-test/lib/thing@' + testVersion).then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -215,13 +216,13 @@ describe('browserify server', function () {
       });
 
       it('can require normal then deep paths', function () {
-        return api.get('/modules/browserify-server-test?require=true').then(function (response) {
+        return api.get('/modules/browserify-server-test').then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTest = req('browserify-server-test');
           expect(browserifyServerTest()).to.equal('browserify-server-test');
         }).then(function () {
-          return api.get('/modules/browserify-server-test/lib/thing?require=true').then(function (response) {
+          return api.get('/modules/browserify-server-test/lib/thing').then(function (response) {
             var req = client.loadRequire(response.body);
 
             var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -252,13 +253,13 @@ describe('browserify server', function () {
         }).then(function () {
           return Promise.all([
             api.get('/modules/browserify-server-test@' + testVersion),
-            api.get('/modules/browserify-server-test@' + testVersion + '?require=true')
+            api.get('/modules/browserify-server-test@' + testVersion + '?debug=true')
           ]).then(function (responses) {
-            var modules = client.loadModules(responses[0].body);
-            var req = client.loadRequire(responses[1].body);
+            var req1 = client.loadRequire(responses[0].body);
+            var req2 = client.loadRequire(responses[1].body);
 
-            expect(req('browserify-server-test')()).to.equal('browserify-server-test');
-            expect(modules.modules['browserify-server-test']()).to.equal('browserify-server-test');
+            expect(req1('browserify-server-test')()).to.equal('browserify-server-test');
+            expect(req2('browserify-server-test')()).to.equal('browserify-server-test');
           });
         });
       });
