@@ -6,11 +6,13 @@ Browserify on the fly!
 
 Write a web page with this in it:
 
-    <script src="http://localhost:4000/modules/qs"></script>
-    <script>
-      var qs = require('qs');
-      ...
-    </script>
+```html
+<script src="http://localhost:4000/modules/qs"></script>
+<script>
+  var qs = require('qs');
+  ...
+</script>
+```
 
 How is this different to https://wzrd.in/?
 
@@ -24,7 +26,9 @@ Essentially just like doing `npm install` but from your browser.
 
 ## start
 
-    node server.js
+```sh
+node server.js
+```
 
 # api
 
@@ -49,22 +53,26 @@ Likewise, if you specify a tag such as `beta` or `latest` you'll be redirected t
 * sets a `require` global function (or not, see below)
 * includes a module called `module-versions` containing the versions of each module
 
-    <script src="http://localhost:4000/modules/a@1.0.0,b@1.0.0,c@1.0.0"></script>
-    <script>
-      var a = require('a');
-      var versionOfA = require('module-versions').a; // "1.0.0"
-      ...
-    </script>
+```html
+<script src="http://localhost:4000/modules/a@1.0.0,b@1.0.0,c@1.0.0"></script>
+<script>
+  var a = require('a');
+  var versionOfA = require('module-versions').a; // "1.0.0"
+  ...
+</script>
+```
 
 If you want to get at the `require` function but without setting it globally, do this:
 
-    function loadRequire(js) {
-      return new Function('var require;\n' + js + '; return require;')();
-    }
+```js
+function loadRequire(js) {
+  return new Function('var require;\n' + js + '; return require;')();
+}
 
-    $.get('http://localhost:4000/modules/a,b,c').then(function (js) {
-      var require = loadRequire(js);
-    });
+$.get('http://localhost:4000/modules/a,b,c').then(function (js) {
+  var require = loadRequire(js);
+});
+```
 
 `loadRequire` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
 
