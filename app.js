@@ -41,9 +41,9 @@ function respond(moduleNames, options, req, res) {
   }
 }
 
-app.get('/modules/:modules', function (req, res) {
+app.use('/modules', function (req, res) {
   new Promise(function (fulfil) {
-    var moduleNames = req.params.modules.split(',');
+    var moduleNames = req.path.substring(1).split(',');
     var debug = req.query.debug === 'true';
     var require = req.query.require === 'true';
 

@@ -13,7 +13,7 @@ function rimraf(dir) {
   });
 }
 
-var testVersion = '1.0.0';
+var testVersion = '1.1.0';
 var testPeerDepVersion = '1.0.0';
 
 describe('browserify server', function () {
@@ -64,28 +64,35 @@ describe('browserify server', function () {
     it('will redirect to the latest versions if none specified', function () {
       return api.get('/modules/prote', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation, '/modules/prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/prote@' + proteLatest);
       });
     });
 
     it('can redirect to the latest versions', function () {
       return api.get('/modules/prote@latest', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation, '/modules/prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/prote@' + proteLatest);
       });
     });
 
     it('can redirect to a tagged version', function () {
       return api.get('/modules/express@rc', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation, '/modules/express@' + expressRc);
+        expect(redirectLocation).to.equal('/modules/express@' + expressRc);
       });
     });
 
     it('redirects to modules in alphabetical order', function () {
-      return api.get('/modules/prote,express', {redirect: false}).then(function (response) {
+      return api.get('/modules/prote,express@rc', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation, '/modules/express@' + expressRc + ',prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/express@' + expressRc + ',prote@' + proteLatest);
+      });
+    });
+
+    it('redirects to base modules with versions, plus deep paths', function () {
+      return api.get('/modules/browserify-server-test/lib/thing', {redirect: false}).then(function (response) {
+        var redirectLocation = response.headers.location;
+        expect(redirectLocation).to.equal('/modules/browserify-server-test/lib/thing,browserify-server-test@' + testVersion);
       });
     });
   });
@@ -184,6 +191,43 @@ describe('browserify server', function () {
           expect(browserifyServerTest()).to.equal('browserify-server-test');
           expect(browserifyServerTestPeerDep()).to.equal('browserify-server-test-peer-dep');
           expect(browserifyServerTestPeerDep.peerDependency).to.equal(browserifyServerTest);
+        });
+      });
+
+      it('can require deep paths', function () {
+        return api.get('/modules/browserify-server-test/lib/thing?require=true').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          var browserifyServerTestThing = req('browserify-server-test/lib/thing');
+
+          expect(browserifyServerTestThing()).to.equal('browserify-server-test-thing');
+        });
+      });
+
+      it('can require deep paths with versions', function () {
+        return api.get('/modules/browserify-server-test/lib/thing@' + testVersion + '?require=true').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          var browserifyServerTestThing = req('browserify-server-test/lib/thing');
+
+          expect(browserifyServerTestThing()).to.equal('browserify-server-test-thing');
+        });
+      });
+
+      it('can require normal then deep paths', function () {
+        return api.get('/modules/browserify-server-test?require=true').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          var browserifyServerTest = req('browserify-server-test');
+          expect(browserifyServerTest()).to.equal('browserify-server-test');
+        }).then(function () {
+          return api.get('/modules/browserify-server-test/lib/thing?require=true').then(function (response) {
+            var req = client.loadRequire(response.body);
+
+            var browserifyServerTestThing = req('browserify-server-test/lib/thing');
+
+            expect(browserifyServerTestThing()).to.equal('browserify-server-test-thing');
+          });
         });
       });
     });

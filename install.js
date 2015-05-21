@@ -38,7 +38,7 @@ function writePackage(modules, dir) {
   };
 
   var packageFilename = dir + '/package.json';
-  debug('writing package', packageFilename);
+  debug('writing package', packageFilename, package);
   return fs.writeFile(packageFilename, JSON.stringify(package, null, 2));
 }
 

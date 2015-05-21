@@ -16,8 +16,8 @@ var bundleCache = cache();
 
 function index(modules) {
   return 'module.exports = {modules:{' +
-    modules.moduleVersions.map(function (moduleVersion) {
-      return JSON.stringify(moduleVersion.name) + ': require("' + moduleVersion.name + '")';
+    modules.requires().map(function (moduleName) {
+      return JSON.stringify(moduleName) + ': require(' + JSON.stringify(moduleName) + ')';
     }).join(',') +
     '},versions:' + JSON.stringify(modules.dependencies()) + '};';
 }
@@ -35,8 +35,8 @@ function argsFilename(modules, options) {
     }
 
     if (options.require) {
-      modules.moduleVersions.forEach(function (moduleVersion) {
-        args.push('-r', moduleVersion.name);
+      modules.requires().forEach(function (moduleName) {
+        args.push('-r', moduleName);
       });
     } else {
       args.push('index.js');
@@ -92,8 +92,7 @@ function createBundle(modules, dir, options) {
 
 function removeNodeModules(dir) {
   var nodeModulesDir = dir + '/node_modules';
-  debug('not removing ', nodeModulesDir);
-  // return rimraf(nodeModulesDir);
+  return rimraf(nodeModulesDir);
 }
 
 module.exports = function (modules, dir, options) {

@@ -6,19 +6,18 @@ function hasExactVersion(version) {
   return /^[0-9]+\.[0-9]+\.[0-9]+/.test(version);
 }
 
-function parseVersions(modules) {
-  return modules.map(function (name) {
-    var nameVersion = name.split('@');
+function parseVersions(dependencies) {
+  return Object.keys(dependencies).map(function (name) {
     return {
-      name: nameVersion[0],
-      version: nameVersion[1] || 'latest'
+      name: name,
+      version: dependencies[name]
     };
   });
 };
 
 function Modules(modules) {
   this.modules = modules.slice().sort();
-  this.moduleVersions = parseVersions(this.modules);
+  this.moduleVersions = parseVersions(this.dependencies());
 }
 
 Modules.prototype.hasExactVersions = function () {
@@ -36,6 +35,8 @@ Modules.prototype.resolveVersions = function () {
     return name + '@' + version;
   }
 
+  var self = this;
+
   return Promise.all(this.moduleVersions.map(function (moduleVersion) {
     if (hasExactVersion(moduleVersion.version)) {
       return renderModuleVersion(moduleVersion.name, moduleVersion.version);
@@ -45,7 +46,13 @@ Modules.prototype.resolveVersions = function () {
       });
     }
   })).then(function (modules) {
-    return new Modules(modules);
+    return new Modules(modules.concat(self.pathRequires()));
+  });
+};
+
+Modules.prototype.pathRequires = function () {
+  return this.modules.filter(function (module) {
+    return module.split('/')[1];
   });
 };
 
@@ -56,20 +63,32 @@ Modules.prototype.verifyVersions = function () {
 };
 
 Modules.prototype.dependencies = function () {
-  var deps = {};
+  if (!this._dependencies) {
+    var self = this;
+    this._dependencies = {};
 
-  this.moduleVersions.forEach(function (moduleVersion) {
-    deps[moduleVersion.name] = moduleVersion.version;
+    this.modules.map(function (module) {
+      return module.split('/')[0];
+    }).forEach(function (module) {
+      var nameVersion = module.split('@');
+      var name = nameVersion[0];
+      var version = nameVersion[1];
+      self._dependencies[name] = version || 'latest';
+    });
+  }
+
+  return this._dependencies;
+};
+
+Modules.prototype.requires = function () {
+  return this.modules.map(function (m) {
+    return m.split('@')[0];
   });
-
-  return deps;
 };
 
 Modules.prototype.hash = function () {
   if (!this._hash) {
-    var normalised = this.moduleVersions.map(function (moduleVersion) {
-      return moduleVersion.name + '@' + moduleVersion.version;
-    }).sort().join();
+    var normalised = this.modules.join(',');
 
     debug('modules', normalised);
 
