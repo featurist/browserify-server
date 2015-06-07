@@ -1,6 +1,6 @@
 var app = require('./app');
 
-app.set('packages directory', 'packages');
+app.set('packages directory', 'tmp/packages');
 
 var port = process.env.PORT || 4000;
 

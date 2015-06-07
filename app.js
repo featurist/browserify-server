@@ -43,7 +43,7 @@ function respond(moduleNames, options, req, res) {
 
 app.use('/modules', function (req, res) {
   new Promise(function (fulfil) {
-    var moduleNames = req.path.substring(1).split(',');
+    var moduleNames = req.path.substring(1).split(',').filter(function (x) { return x; });
     var debug = req.query.debug === 'true';
 
     if (moduleNames.length > 0) {
