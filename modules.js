@@ -26,6 +26,10 @@ Modules.prototype.hasExactVersions = function () {
   });
 };
 
+Modules.prototype.hasCorrectOrder = function (moduleNames) {
+  return this.modules.join(',') == moduleNames;
+};
+
 function npmUrl(moduleVersion) {
   return 'https://registry.npmjs.org/' + moduleVersion.name + '/' + moduleVersion.version;
 }

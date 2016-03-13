@@ -6,6 +6,7 @@ var httpism = require('httpism');
 var client = require('../client');
 var fs = require('fs-promise');
 var retry = require('trytryagain');
+var sourceMap = require('source-map');
 
 function rimraf(dir) {
   return promisify(function (cb) {
@@ -21,6 +22,7 @@ describe('browserify server', function () {
   var server;
   var api;
   var port = 34567;
+  var npmApi;
 
   beforeEach(function () {
     return rimraf(packagesDir).then(function () {
@@ -28,7 +30,6 @@ describe('browserify server', function () {
       app.clearCache();
       server = app.listen(port);
       api = httpism.api('http://localhost:' + port);
-      npmApi = httpism.api('http://registry.npmjs.org');
     });
   });
 
@@ -47,7 +48,9 @@ describe('browserify server', function () {
   describe('resolving versions', function () {
     var proteLatest, expressRc;
 
-    beforeEach(function () {
+    before(function () {
+      npmApi = httpism.api('http://registry.npmjs.org');
+
       return Promise.all([
         npmApi.get('prote/latest'),
         npmApi.get('express/rc')
@@ -64,35 +67,49 @@ describe('browserify server', function () {
     it('will redirect to the latest versions if none specified', function () {
       return api.get('/modules/prote', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation).to.equal('/modules/prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('prote@' + proteLatest));
+      });
+    });
+
+    it('will redirect to the latest versions maintaining bundle path', function () {
+      return api.get('/modules/prote/bundle.js', {redirect: false}).then(function (response) {
+        var redirectLocation = response.headers.location;
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('prote@' + proteLatest) + '/bundle.js');
       });
     });
 
     it('can redirect to the latest versions', function () {
       return api.get('/modules/prote@latest', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation).to.equal('/modules/prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('prote@' + proteLatest));
       });
     });
 
     it('can redirect to a tagged version', function () {
       return api.get('/modules/express@rc', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation).to.equal('/modules/express@' + expressRc);
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('express@' + expressRc));
       });
     });
 
     it('redirects to modules in alphabetical order', function () {
       return api.get('/modules/prote,express@rc', {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation).to.equal('/modules/express@' + expressRc + ',prote@' + proteLatest);
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('express@' + expressRc + ',prote@' + proteLatest));
       });
     });
 
     it('redirects to base modules with versions, plus deep paths', function () {
-      return api.get('/modules/browserify-server-test/lib/thing', {redirect: false}).then(function (response) {
+      return api.get('/modules/' + encodeURIComponent('browserify-server-test/lib/thing'), {redirect: false}).then(function (response) {
         var redirectLocation = response.headers.location;
-        expect(redirectLocation).to.equal('/modules/browserify-server-test/lib/thing,browserify-server-test@' + testVersion);
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('browserify-server-test/lib/thing,browserify-server-test@' + testVersion));
+      });
+    });
+
+    it('redirects to modules in alphabetical order', function () {
+      return api.get('/modules/prote@' + proteLatest + ',express@' + expressRc, {redirect: false}).then(function (response) {
+        var redirectLocation = response.headers.location;
+        expect(redirectLocation).to.equal('/modules/' + encodeURIComponent('express@' + expressRc + ',prote@' + proteLatest));
       });
     });
   });
@@ -101,6 +118,19 @@ describe('browserify server', function () {
     this.timeout(10000);
 
     describe('returning modules with versions', function () {
+      it('browserifies modules', function () {
+        return api.get('/modules/browserify-server-test').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          var browserifyServerTest = req('browserify-server-test');
+
+          expect(browserifyServerTest()).to.equal('browserify-server-test');
+
+          var dependencies = req('./package.json').dependencies;
+          expect(dependencies['browserify-server-test']).to.equal(testVersion);
+        });
+      });
+
       it('browserifies modules with peer dependencies', function () {
         return api.get('/modules/browserify-server-test,browserify-server-test-peer-dep').then(function (response) {
           var req = client.loadRequire(response.body);
@@ -112,9 +142,9 @@ describe('browserify server', function () {
           expect(browserifyServerTestPeerDep()).to.equal('browserify-server-test-peer-dep');
           expect(browserifyServerTestPeerDep.peerDependency).to.equal(browserifyServerTest);
 
-          var versions = req('module-versions');
-          expect(versions['browserify-server-test']).to.equal(testVersion);
-          expect(versions['browserify-server-test-peer-dep']).to.equal(testPeerDepVersion);
+          var dependencies = req('./package.json').dependencies;
+          expect(dependencies['browserify-server-test']).to.equal(testVersion);
+          expect(dependencies['browserify-server-test-peer-dep']).to.equal(testPeerDepVersion);
         });
       });
 
@@ -196,7 +226,7 @@ describe('browserify server', function () {
       });
 
       it('can require deep paths', function () {
-        return api.get('/modules/browserify-server-test/lib/thing').then(function (response) {
+        return api.get('/modules/' + encodeURIComponent('browserify-server-test/lib/thing')).then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -206,7 +236,7 @@ describe('browserify server', function () {
       });
 
       it('can require deep paths with versions', function () {
-        return api.get('/modules/browserify-server-test/lib/thing@' + testVersion).then(function (response) {
+        return api.get('/modules/' + encodeURIComponent('browserify-server-test/lib/thing@' + testVersion)).then(function (response) {
           var req = client.loadRequire(response.body);
 
           var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -222,7 +252,7 @@ describe('browserify server', function () {
           var browserifyServerTest = req('browserify-server-test');
           expect(browserifyServerTest()).to.equal('browserify-server-test');
         }).then(function () {
-          return api.get('/modules/browserify-server-test/lib/thing').then(function (response) {
+          return api.get('/modules/' + encodeURIComponent('browserify-server-test/lib/thing')).then(function (response) {
             var req = client.loadRequire(response.body);
 
             var browserifyServerTestThing = req('browserify-server-test/lib/thing');
@@ -260,6 +290,73 @@ describe('browserify server', function () {
 
             expect(req1('browserify-server-test')()).to.equal('browserify-server-test');
             expect(req2('browserify-server-test')()).to.equal('browserify-server-test');
+          });
+        });
+      });
+    });
+  });
+
+  describe('source maps', function () {
+    function positionOf(js, string) {
+      var lines = js.split('\n');
+
+      for(var n = 0; n < lines.length; n++) {
+        var line = lines[n];
+        var index = line.indexOf(string);
+
+        if (index >= 0) {
+          return {
+            line: n + 1,
+            column: index + 1
+          }
+        }
+      }
+    }
+
+    it('can expose the original source from a minified file', function () {
+      return api.get('/modules/browserify-server-test').then(function (response) {
+        var js = response.body;
+        var match = js.match(/^\/\/# sourceMappingURL=(.*)$/m);
+
+        expect(match).to.exist;
+
+        var mapUrl = match[1]
+
+        return api.get(mapUrl).then(function (response) {
+          var map = sourceMap.SourceMapConsumer(response.body);
+          var position = positionOf(js, 'return"browserify-server-test"');
+          expect(position).to.exist;
+
+          expect(map.originalPositionFor(position)).to.eql({
+            source: 'browserify-server-test',
+            line: 2,
+            column: 0,
+            name: null
+          });
+        });
+      });
+    });
+
+    it('can expose the original source from a non-minified file', function () {
+      return api.get('/modules/browserify-server-test/bundle.js').then(function (response) {
+        var js = response.body;
+        var match = js.match(/^\/\/# sourceMappingURL=(.*)$/m);
+
+        expect(match).to.exist;
+
+        var mapUrl = match[1]
+
+        return api.get(mapUrl).then(function (response) {
+          var map = sourceMap.SourceMapConsumer(response.body);
+
+          var position = positionOf(js, "return 'browserify-server-test'");
+          expect(position).to.exist;
+
+          expect(map.originalPositionFor(position)).to.eql({
+            source: 'browserify-server-test',
+            line: 2,
+            column: 0,
+            name: null
           });
         });
       });

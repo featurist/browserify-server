@@ -11,16 +11,21 @@ var app = express();
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
 
-function redirectToExactVersions(modules, req, res) {
+function redirectToExactVersions(modules, filename, req, res) {
   return modules.resolveVersions().then(function (modulesWithVersions) {
     var query = qs.stringify(req.query);
-    var path = '/modules/' + modulesWithVersions.modules.join(',')
+    var path = baseUrlForModules(modulesWithVersions);
+
+    if (filename) {
+      path += '/' + filename;
+    }
+
     var url = path + (query? '?' + query: '');
     res.redirect(url);
   });
 }
 
-function createBundle(modules, options, res) {
+function createBundle(modules, options) {
   var packagesDir = app.get('packages directory');
 
   return install(packagesDir, modules).then(function (dir) {
@@ -28,26 +33,34 @@ function createBundle(modules, options, res) {
   });
 }
 
-function respond(moduleNames, options, req, res) {
-  var modules = createModules(moduleNames);
+function baseUrlForModules(modules) {
+  return '/modules/' + encodeURIComponent(modules.modules.join(','));
+}
 
-  if (modules.hasExactVersions()) {
-    return createBundle(modules, options).then(function (filename) {
+function respondWithBundle(moduleNames, filename, req, res) {
+  var modules = createModules(moduleNames);
+  var bundleFilename = filename || 'bundle.min.js';
+
+  if (modules.hasExactVersions() && modules.hasCorrectOrder(moduleNames)) {
+    return createBundle(modules, {basePath: baseUrlForModules(modules)}).then(function (dir) {
       res.set('Content-Type', 'text/javascript');
-      res.sendFile(filename, {maxAge: '365d', root: process.cwd()});
+      res.sendFile(dir + '/' + bundleFilename, {maxAge: '365d', root: process.cwd()});
     });
   } else {
-    return redirectToExactVersions(modules, req, res);
+    return redirectToExactVersions(modules, filename, req, res);
   }
 }
 
-app.use('/modules', function (req, res) {
+app.get('/modules/:moduleNames', handleModules);
+app.get('/modules/:moduleNames/:filename', handleModules);
+
+function handleModules(req, res) {
   new Promise(function (fulfil) {
-    var moduleNames = req.path.substring(1).split(',').filter(function (x) { return x; });
-    var debug = req.query.debug === 'true';
+    var filename = req.params.filename;
+    var moduleNames = req.params.moduleNames.split(',').filter(function (x) { return x; });
 
     if (moduleNames.length > 0) {
-      fulfil(respond(moduleNames, {debug: debug}, req, res));
+      fulfil(respondWithBundle(moduleNames, filename, req, res));
     } else {
       res.status(400).send({message: 'expected modules to be an array'});
     }
@@ -59,7 +72,7 @@ app.use('/modules', function (req, res) {
       res.status(500).send({message: error && error.message});
     }
   });
-});
+}
 
 module.exports = app;
 

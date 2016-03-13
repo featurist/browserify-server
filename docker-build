@@ -1,1 +1,1 @@
-docker build -t refractalize/browserify-server .
+docker build -t featurist/browserify-server .

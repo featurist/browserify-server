@@ -20,6 +20,7 @@
   "devDependencies": {
     "chai": "2.3.0",
     "mocha": "2.2.5",
+    "source-map": "0.5.3",
     "trytryagain": "1.0.1"
   },
   "scripts": {
