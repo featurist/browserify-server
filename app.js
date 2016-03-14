@@ -7,11 +7,13 @@ var qs = require('qs');
 var cors = require('cors');
 var md = require('marked');
 var fs = require('fs-promise');
+var logger = require('./logger');
 
 var app = express();
 app.use(cors());
 app.engine("html", require("ejs").renderFile);
 app.set('views', __dirname + '/views');
+app.use(logger());
 
 function redirectToExactVersions(modules, filename, req, res) {
   return modules.resolveVersions().then(function (modulesWithVersions) {
