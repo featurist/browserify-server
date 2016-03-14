@@ -1,0 +1,1 @@
+docker run -dp 80:4000 -e DEBUG=browserify-server:* featurist/browserify-server

@@ -20,7 +20,9 @@ How is this different to https://wzrd.in/ and [browserify-cdn](https://github.co
 * supports `peerDependencies`
 * supports using `require()` in your `<script>`
 * supports deep paths, e.g. `require('module/lib/thing')`
-* includes the versions of each module, as they were resolved
+* includes the `package.json` containing the versions of the modules in the bundle
+* minifies JS by default
+* includes source maps
 
 Essentially just like doing `npm install` but from your browser.
 
@@ -51,13 +53,13 @@ Likewise, if you specify a tag such as `beta` or `latest` you'll be redirected t
 **NOTE** it can take a few seconds to build the bundle for the first time, following that responses are almost instantaneous.
 
 * sets a `require` global function (or not, see below)
-* includes a module called `module-versions` containing the versions of each module
+* includes `./package.json` containing the versions of each module
 
 ```html
 <script src="http://localhost:4000/modules/a@1.0.0,b@1.0.0,c@1.0.0"></script>
 <script>
   var a = require('a');
-  var versionOfA = require('module-versions').a; // "1.0.0"
+  var versionOfA = require('./package.json').dependencies.a; // "1.0.0"
   ...
 </script>
 ```
@@ -66,7 +68,7 @@ If you want to get at the `require` function but without setting it globally, do
 
 ```js
 function loadRequire(js) {
-  return new Function('var require;\n' + js + '; return require;')();
+  return new Function('var require;\n' + js + ';\nreturn require;')();
 }
 
 $.get('http://localhost:4000/modules/a,b,c').then(function (js) {
@@ -76,8 +78,10 @@ $.get('http://localhost:4000/modules/a,b,c').then(function (js) {
 
 `loadRequire` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
 
-### debug
+### specific files
 
-    ?debug=true
-
-* serves the same JS, but with source maps
+* minified js: `/modules/a@1.0.0` or `/modules/a@1.0.0/bundle.min.js`
+* minified source map: `/modules/a@1.0.0/bundle.min.js.map`
+* unminified js: `/modules/a@1.0.0/bundle.js`
+* unminified source map: `/modules/a@1.0.0/bundle.js.map`
+* package.json: `/modules/a@1.0.0/package.json`
