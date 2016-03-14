@@ -1,15 +1,17 @@
 var express = require('express');
-var bodyParser = require("body-parser");
 var install = require('./install');
 var bundle = require('./bundle');
 var debug = require('debug')('browserify-server:app');
 var createModules = require('./modules');
 var qs = require('qs');
 var cors = require('cors');
+var md = require('marked');
+var fs = require('fs-promise');
 
 var app = express();
-app.use(bodyParser.urlencoded({extended: true}));
 app.use(cors());
+app.engine("html", require("ejs").renderFile);
+app.set('views', __dirname + '/views');
 
 function redirectToExactVersions(modules, filename, req, res) {
   return modules.resolveVersions().then(function (modulesWithVersions) {
@@ -73,6 +75,20 @@ function handleModules(req, res) {
     }
   });
 }
+
+app.use('/style', express.static(__dirname + '/node_modules/github-markdown-css'));
+
+app.get('/', function (req, res) {
+  fs.readFile('readme.md', 'utf-8').then(function (readme) {
+    readme = readme.replace(/http:\/\/localhost:4000/g, req.protocol + '://' + req.get('host'));
+    readme = readme.replace(/^#.*\n/, function(_) { return _ + '\n[github.com/featurist/browserify-server](https://github.com/featurist/browserify-server)\n'; });
+
+    res.render('doc.html', {body: md(readme)});
+  }).catch(function (error) {
+    debug('error', error.stack);
+    res.status(500).send({message: error && error.message});
+  });
+});
 
 module.exports = app;
 

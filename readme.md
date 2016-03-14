@@ -78,7 +78,7 @@ $.get('http://localhost:4000/modules/a,b,c').then(function (js) {
 
 `loadRequire` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
 
-### specific files
+## specific files
 
 * minified js: `/modules/a@1.0.0` or `/modules/a@1.0.0/bundle.min.js`
 * minified source map: `/modules/a@1.0.0/bundle.min.js.map`
