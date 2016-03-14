@@ -1,5 +1,7 @@
 # browserify server
 
+[http://require.plastiq.org/](http://require.plastiq.org/)
+
 Browserify on the fly!
 
     EH?!
@@ -13,6 +15,8 @@ Write a web page with this in it:
   ...
 </script>
 ```
+
+See this lovely minified JS: [http://require.plastiq.org/modules/plastiq](http://require.plastiq.org/modules/plastiq)
 
 How is this different to https://wzrd.in/ and [browserify-cdn](https://github.com/jfhbrook/browserify-cdn)?
 
