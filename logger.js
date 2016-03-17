@@ -16,7 +16,8 @@ module.exports = function(options) {
     });
 
     onFinished(res, function () {
-      debug(method + ' ' + url + ' => ' + res.statusCode + ' (' + formatDuration(duration) + ')');
+      var durationString = duration? ' (' + formatDuration(duration) + ')': '';
+      debug(method + ' ' + url + ' => ' + res.statusCode + durationString);
     });
 
     next();
