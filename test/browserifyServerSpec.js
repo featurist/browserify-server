@@ -126,7 +126,7 @@ describe('browserify server', function () {
 
           expect(browserifyServerTest()).to.equal('browserify-server-test');
 
-          var dependencies = req('./package.json').dependencies;
+          var dependencies = req('package.json').dependencies;
           expect(dependencies['browserify-server-test']).to.equal(testVersion);
         });
       });
@@ -142,7 +142,7 @@ describe('browserify server', function () {
           expect(browserifyServerTestPeerDep()).to.equal('browserify-server-test-peer-dep');
           expect(browserifyServerTestPeerDep.peerDependency).to.equal(browserifyServerTest);
 
-          var dependencies = req('./package.json').dependencies;
+          var dependencies = req('package.json').dependencies;
           expect(dependencies['browserify-server-test']).to.equal(testVersion);
           expect(dependencies['browserify-server-test-peer-dep']).to.equal(testPeerDepVersion);
         });

@@ -57,13 +57,13 @@ Likewise, if you specify a tag such as `beta` or `latest` you'll be redirected t
 **NOTE** it can take a few seconds to build the bundle for the first time, following that responses are almost instantaneous.
 
 * sets a `require` global function (or not, see below)
-* includes `./package.json` containing the versions of each module
+* includes `package.json` containing the versions of each module
 
 ```html
 <script src="http://localhost:4000/modules/a@1.0.0,b@1.0.0,c@1.0.0"></script>
 <script>
   var a = require('a');
-  var versionOfA = require('./package.json').dependencies.a; // "1.0.0"
+  var versionOfA = require('package.json').dependencies.a; // "1.0.0"
   ...
 </script>
 ```

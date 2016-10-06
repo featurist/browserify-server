@@ -46,7 +46,7 @@ function createBundle(modules) {
     debug: true
   });
 
-  b.require('./package.json');
+  b.require('./package.json', {expose: 'package.json'});
   modules.requires().forEach(function (moduleName) {
     b.require(moduleName);
   });
