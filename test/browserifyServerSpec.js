@@ -261,6 +261,37 @@ describe('browserify server', function () {
           });
         });
       });
+
+      it('can require modules including their dependencies', function () {
+        return api.get('/modules/browserify-server-test-dep').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          var browserifyServerTestDep = req('browserify-server-test-dep');
+
+          expect(browserifyServerTestDep.dependency()).to.equal('browserify-server-test');
+          expect(browserifyServerTestDep()).to.equal('browserify-server-test-dep');
+        });
+      });
+
+      it('can require modules excluding their dependencies', function () {
+        return api.get('/modules/browserify-server-test-dep,!browserify-server-test').then(function (response) {
+          var req = client.loadRequire(response.body);
+
+          expect(() => req('browserify-server-test-dep')).to.throw("Cannot find module 'browserify-server-test'");
+
+          var browserifyServerTest = {};
+
+          var externalModules = {
+            'browserify-server-test': browserifyServerTest
+          };
+
+          var reqWithModules = client.loadRequire(response.body, externalModules);
+
+          var browserifyServerTestDep = reqWithModules('browserify-server-test-dep');
+          expect(browserifyServerTestDep.dependency).to.equal(browserifyServerTest);
+          expect(browserifyServerTestDep()).to.equal('browserify-server-test-dep');
+        });
+      });
     });
 
     describe('removing node_modules to save space', function () {

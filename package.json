@@ -30,7 +30,7 @@
   },
   "scripts": {
     "test": "mocha",
-    "start": "node server.js"
+    "start": "DEBUG=browserify-server:* node server.js"
   },
   "repository": {
     "type": "git",

@@ -47,8 +47,13 @@ function createBundle(modules) {
   });
 
   b.require('./package.json', {expose: 'package.json'});
+
   modules.requires().forEach(function (moduleName) {
     b.require(moduleName);
+  });
+
+  modules.excludes.forEach(function (moduleName) {
+    b.exclude(moduleName);
   });
 
   return b;

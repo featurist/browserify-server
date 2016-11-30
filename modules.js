@@ -13,10 +13,18 @@ function parseVersions(dependencies) {
       version: dependencies[name]
     };
   });
-};
+}
 
 function Modules(modules) {
-  this.modules = modules.slice().sort();
+  this.moduleNames = modules.slice().sort();
+  this.modules = this.moduleNames.filter(function (m) {
+    return !m.startsWith('!');
+  });
+  this.excludes = this.moduleNames.filter(function (m) {
+    return m.startsWith('!');
+  }).map(function (m) {
+    return m.substring(1);
+  });
   this.moduleVersions = parseVersions(this.dependencies());
 }
 
@@ -27,7 +35,7 @@ Modules.prototype.hasExactVersions = function () {
 };
 
 Modules.prototype.hasCorrectOrder = function (moduleNames) {
-  return this.modules.join(',') == moduleNames;
+  return this.moduleNames.join(',') == moduleNames;
 };
 
 function npmUrl(moduleVersion) {
@@ -50,7 +58,7 @@ Modules.prototype.resolveVersions = function () {
       });
     }
   })).then(function (modules) {
-    return new Modules(modules.concat(self.pathRequires()));
+    return new Modules(modules.concat(self.pathRequires()).concat(self.excludes.map(function (e) { return '!' + e; })));
   });
 };
 
@@ -92,7 +100,7 @@ Modules.prototype.requires = function () {
 
 Modules.prototype.hash = function () {
   if (!this._hash) {
-    var normalised = this.modules.join(',');
+    var normalised = this.moduleNames.join(',');
 
     debug('modules', normalised);
 

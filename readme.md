@@ -27,6 +27,7 @@ How is this different to https://wzrd.in/ and [browserify-cdn](https://github.co
 * includes the `package.json` containing the versions of the modules in the bundle
 * minifies JS by default
 * includes source maps
+* supports excluding modules from the bundle
 
 Essentially just like doing `npm install` but from your browser.
 
@@ -68,6 +69,8 @@ Likewise, if you specify a tag such as `beta` or `latest` you'll be redirected t
 </script>
 ```
 
+## require
+
 If you want to get at the `require` function but without setting it globally, do this:
 
 ```js
@@ -81,6 +84,52 @@ $.get('http://localhost:4000/modules/a,b,c').then(function (js) {
 ```
 
 `loadRequire` can be found in [client.js](https://github.com/featurist/browserify-server/blob/master/client.js)
+
+## excluding and referring to external modules
+
+You can exclude modules by placing a `!` before the name, so to bundle `a` and `b`, but exclude the dependency `c`:
+
+    GET /modules/a,b,!c
+
+The module `c` can then be referenced from an existing `require` possibly from another bundle. For example, to get a `require` function that refers to extenal modules:
+
+```js
+module.exports.loadRequire = function (js, modules) {
+  return new Function('require', js + ';\nreturn require;')(createRequire(modules));
+};
+
+function createRequire(modules) {
+  return function(name) {
+    if (modules.hasOwnProperty(name)) {
+      return modules[name];
+    } else {
+      throw new Error("Cannot find module '" + name + "'");
+    }
+  };
+}
+```
+
+You can use it like this:
+
+```js
+$.get('http://localhost:4000/modules/a,b,!c').then(function (js) {
+  var require = loadRequire(js, {
+    c: {
+      name: "this is the module 'c'"
+    }
+  });
+
+  var a = require('a');
+  var b = require('b');
+});
+```
+
+Or you could layer two script tags, one that bundles `c` and defines `require`, the second that bundles `a` and `b` that uses the first `require` for the module `c`.
+
+```html
+<script src="http://localhost:4000/modules/c"></script>
+<script src="http://localhost:4000/modules/a,b,!c"></script>
+```
 
 ## specific files
 

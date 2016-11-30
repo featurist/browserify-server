@@ -38,7 +38,7 @@ function createBundle(modules, options) {
 }
 
 function baseUrlForModules(modules) {
-  return '/modules/' + encodeURIComponent(modules.modules.join(','));
+  return '/modules/' + encodeURIComponent(modules.moduleNames.join(','));
 }
 
 function respondWithBundle(moduleNames, filename, req, res) {
